@@ -100,5 +100,5 @@ def process_pipeline(config_path: str) -> None:
 
 # Example usage:
 if __name__ == "__main__":
-    config_file_path = r"C:\Users\Neelkant\PycharmProjects\personal\bikestores_project\config\pipeline_config.cfg"
+    config_file_path = r"bikestores-project\config\pipeline_config.cfg"
     process_pipeline(config_file_path)
