@@ -1,0 +1,240 @@
+version: 2
+
+models:
+  - name: dim_customer
+    description: Customer dimension view with standardized phone and zip code formats, and region classification.
+    config:
+      materialized: view
+      alias: dim_customer
+      schema: gold_sch
+    columns:
+      - name: customer_id
+        description: Unique identifier for the customer.
+        tests:
+          - unique
+          - not_null
+      - name: first_name
+        description: Customer's first name.
+        tests:
+          - not_null
+      - name: last_name
+        description: Customer's last name.
+        tests:
+          - not_null
+      - name: standardized_phone
+        description: Customer's phone number in a standardized format.
+      - name: email
+        description: Customer's email address.
+      - name: street
+        description: Customer's street address.
+      - name: city
+        description: Customer's city.
+      - name: state
+        description: Customer's state.
+      - name: zip_code
+        description: Customer's ZIP code.
+      - name: region
+        description: Geographic region of the customer (e.g., Northeast, West, Other).
+        tests:
+          - accepted_values:
+              values: ['Northeast', 'West', 'Other']
+
+  - name: dim_product
+    description: Product dimension view with product details and price segments.
+    config:
+      materialized: view
+      alias: dim_product
+      schema: gold_sch
+    columns:
+      - name: product_id
+        description: Unique identifier for the product.
+        tests:
+          - unique
+          - not_null
+      - name: product_name
+        description: Name of the product.
+        tests:
+          - not_null
+      - name: brand_id
+        description: Identifier for the product brand.
+        tests:
+          - not_null
+      - name: brand_name
+        description: Name of the product brand.
+        tests:
+          - not_null
+      - name: category_id
+        description: Identifier for the product category.
+        tests:
+          - not_null
+      - name: category_name
+        description: Name of the product category.
+        tests:
+          - not_null
+      - name: model_year
+        description: Year the product model was released.
+        tests:
+          - not_null
+      - name: list_price
+        description: Standard price of the product.
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "> 0"
+      - name: price_segment
+        description: Price segment of the product (Budget, Mid-Range, Premium).
+        tests:
+          - accepted_values:
+              values: ['Budget', 'Mid-Range', 'Premium', 'Unknown']
+
+  - name: dim_store
+    description: Store dimension view with store details and contact information.
+    config:
+      materialized: view
+      alias: dim_store
+      schema: gold_sch
+    columns:
+      - name: store_id
+        description: Unique identifier for the store.
+        tests:
+          - unique
+          - not_null
+      - name: store_name
+        description: Name of the store.
+        tests:
+          - not_null
+      - name: phone
+        description: Store's contact phone number.
+      - name: email
+        description: Store's contact email address.
+      - name: street
+        description: Store's street address.
+      - name: city
+        description: Store's city.
+      - name: state
+        description: Store's state.
+      - name: zip_code
+        description: Store's ZIP code.
+
+  - name: fact_inventory
+    description: Inventory fact table with product details, store details, and calculated inventory value.
+    config:
+      materialized: view
+      alias: fact_inventory
+      schema: gold_sch
+    columns:
+      - name: snapshot_date_id
+        description: Date of the inventory snapshot (YYYYMMDD format).
+        tests:
+          - not_null
+      - name: product_id
+        description: Identifier for the product in inventory.
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_product')
+              field: product_id
+      - name: store_id
+        description: Identifier for the store holding the inventory.
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_store')
+              field: store_id
+      - name: quantity
+        description: Number of units in stock.
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+      - name: list_price
+        description: Standard price of the product.
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "> 0"
+      - name: inventory_value
+        description: Total value of the inventory (quantity * list_price).
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+
+  - name: fact_sales
+    description: Sales fact table with order details, item details, and calculated net sales amount.
+    config:
+      materialized: view
+      alias: fact_sales
+      schema: gold_sch
+    columns:
+      - name: order_id
+        description: Unique identifier for the order.
+        tests:
+          - not_null
+      - name: order_item_id
+        description: Unique identifier for the order item.
+        tests:
+          - not_null
+      - name: order_date_id
+        description: Date of the order (YYYYMMDD format).
+        tests:
+          - not_null
+      - name: customer_id
+        description: Identifier for the customer who placed the order.
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_customer')
+              field: customer_id
+      - name: store_id
+        description: Identifier for the store where the order was placed.
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_store')
+              field: store_id
+      - name: staff_id
+        description: Identifier for the staff member who processed the order.
+        tests:
+          - not_null
+      - name: product_id
+        description: Identifier for the product ordered.
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_product')
+              field: product_id
+      - name: quantity
+        description: Number of units ordered.
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "> 0"
+      - name: list_price
+        description: Standard price of the product.
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "> 0"
+      - name: discount
+        description: Discount applied to the order item (as a fraction).
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "BETWEEN 0 AND 1"
+      - name: net_sales_amount
+        description: Net sales amount after discount (quantity * list_price * (1 - discount)).
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+      - name: order_status
+        description: Status of the order (e.g., pending, completed).
+        tests:
+          - not_null
+      - name: days_to_ship
+        description: Number of days taken to ship the order.
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"

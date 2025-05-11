@@ -1,0 +1,84 @@
+version: 2
+
+models:
+  - name: customers
+    description: "Cleaned and standardized customer information."
+    columns:
+      - name: customer_id
+        description: "Primary key for customers."
+        tests:
+          - not_null
+          - unique
+      - name: first_name
+        description: "Customer's first name (trimmed and formatted)."
+      - name: last_name
+        description: "Customer's last name (trimmed and formatted)."
+      - name: standardized_phone
+        description: "Customer phone number with non-numeric characters removed, defaults to 'Unknown' if missing."
+      - name: email
+        description: "Customer email address (trimmed)."
+      - name: street
+        description: "Street address."
+      - name: city
+        description: "City name."
+      - name: state
+        description: "State name."
+      - name: zip_code
+        description: "Validated US Zip Code."
+
+  - name: products
+    description: "Product catalog with brand and category enriched."
+    columns:
+      - name: product_id
+        description: "Primary key for products."
+        tests:
+          - not_null
+          - unique
+      - name: product_name
+        description: "Name of the product (trimmed)."
+      - name: brand_id
+        description: "Foreign key to brands."
+      - name: brand_name
+        description: "Name of the brand (trimmed)."
+      - name: category_id
+        description: "Foreign key to categories."
+      - name: category_name
+        description: "Name of the category (trimmed)."
+      - name: model_year
+        description: "Model year of the product."
+      - name: list_price
+        description: "List price of the product (formatted to two decimals)."
+
+  - name: orders
+    description: "Customer orders enriched with store and staff information, including shipping time calculation."
+    columns:
+      - name: order_id
+        description: "Primary key for orders."
+        tests:
+          - not_null
+          - unique
+      - name: customer_id
+        description: "Foreign key to customers."
+      - name: order_status
+        description: "Status of the order."
+        tests:
+          - accepted_values:
+              values: [1, 2, 3, 4]
+      - name: order_date
+        description: "Date when the order was placed."
+      - name: required_date
+        description: "Date when the order is required."
+      - name: shipped_date
+        description: "Date when the order was shipped."
+      - name: store_id
+        description: "Foreign key to stores."
+      - name: store_name
+        description: "Name of the store."
+      - name: staff_id
+        description: "Foreign key to staffs."
+      - name: staff_first_name
+        description: "First name of the staff who handled the order."
+      - name: staff_last_name
+        description: "Last name of the staff who handled the order."
+      - name: days_to_ship
+        description: "Number of days taken to ship the order."
